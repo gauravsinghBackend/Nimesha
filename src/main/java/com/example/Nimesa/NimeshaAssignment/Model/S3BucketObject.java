@@ -16,6 +16,6 @@ public class S3BucketObject {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    private String filenName;
+    private String fileName;
     private String bucketName;
 }

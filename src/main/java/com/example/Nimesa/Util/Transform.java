@@ -1,7 +1,9 @@
 package com.example.Nimesa.Util;
 
 import com.example.Nimesa.NimeshaAssignment.Dto.EC2InstancesDto;
+import com.example.Nimesa.NimeshaAssignment.Dto.PatternMatchResponseDto;
 import com.example.Nimesa.NimeshaAssignment.Model.EC2Instance;
+import com.example.Nimesa.NimeshaAssignment.Model.S3BucketObject;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jmx.export.annotation.ManagedOperation;
@@ -22,5 +24,15 @@ public class Transform {
             ec2InstancesDtos.add(ec2InstancesDto);
         }
         return ec2InstancesDtos;
+    }
+
+    public List<PatternMatchResponseDto> convertPatternEntityToDto(List<S3BucketObject> s3BucketObjects) {
+        List<PatternMatchResponseDto> patternMatchResponseDtos=new ArrayList<>();
+        for (S3BucketObject s3BucketObject: s3BucketObjects)
+        {
+            PatternMatchResponseDto patternMatchResponseDto=modelMapper.map(s3BucketObject, PatternMatchResponseDto.class);
+            patternMatchResponseDtos.add(patternMatchResponseDto);
+        }
+        return patternMatchResponseDtos;
     }
 }

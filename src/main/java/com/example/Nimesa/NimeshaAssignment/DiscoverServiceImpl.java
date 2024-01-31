@@ -6,15 +6,10 @@ import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.Bucket;
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
-import com.example.Nimesa.NimeshaAssignment.Dto.EC2InstancesDto;
-import com.example.Nimesa.NimeshaAssignment.Dto.InstanceBucketDto;
-import com.example.Nimesa.NimeshaAssignment.Dto.S3BucketResponseDto;
+import com.example.Nimesa.NimeshaAssignment.Dto.*;
+import com.example.Nimesa.NimeshaAssignment.Exception.S3BucketException;
 import com.example.Nimesa.NimeshaAssignment.Model.*;
-import com.example.Nimesa.NimeshaAssignment.Dto.JobResponseDto;
-import com.example.Nimesa.NimeshaAssignment.Response.DiscoveryResultResponse;
-import com.example.Nimesa.NimeshaAssignment.Response.InstanceBucketResponse;
-import com.example.Nimesa.NimeshaAssignment.Response.JobStatusResponse;
-import com.example.Nimesa.NimeshaAssignment.Response.S3BucketResponse;
+import com.example.Nimesa.NimeshaAssignment.Response.*;
 import com.example.Nimesa.Util.Status;
 import com.example.Nimesa.Util.StringAll;
 import com.example.Nimesa.Util.Transform;
@@ -202,12 +197,11 @@ public class DiscoverServiceImpl implements DiscoverServices{
                     String fileName = objectSummary.getKey();
                     S3BucketObject s3File = new S3BucketObject();
                     s3File.setBucketName(bucketName);
-                    s3File.setFilenName(fileName);
+                    s3File.setFileName(fileName);
                     s3ObjectRespository.save(s3File);
                 }
-            } catch (Exception e) {
-                // Handle exceptions
-                e.printStackTrace();
+            }catch (Exception e) {
+                System.err.println("Error occurred: " + e.getMessage());
             }
         });
         S3BucketResponseDto s3BucketResponseDto=new S3BucketResponseDto();
@@ -216,6 +210,37 @@ public class DiscoverServiceImpl implements DiscoverServices{
                 .data(s3BucketResponseDto)
                 .message(StringAll.BUCKET_OBJECT_SAVED)
                 .status(Status.SUCCESS)
+                .build();
+    }
+
+    @Override
+    public S3ObjectCountResponse getS3BucketObjectCount(String bucketName) {
+        Long count= s3ObjectRespository.countByBucketName(bucketName);
+        if (count==0){
+            throw new S3BucketException(StringAll.ERROR_RETRIEVE_DATA);
+        }
+        S3ObjectCountResponseDto s3ObjectCountResponseDto=new S3ObjectCountResponseDto();
+        s3ObjectCountResponseDto.setObjectCount(count);
+        return S3ObjectCountResponse.builder()
+                .status(Status.SUCCESS)
+                .message(StringAll.OBJECT_COUNT_RETRIEVED)
+                .data(s3ObjectCountResponseDto)
+                .build();
+    }
+
+    @Override
+    public PatternMatchResponse getObjectByPattern(String bucketName, String pattern) {
+        List<S3BucketObject> s3BucketObjects;
+        try {
+            s3BucketObjects = s3ObjectRespository.findByBucketNameAndFileNameLike(bucketName, "%" + pattern + "%");
+        } catch (Exception e) {
+            throw new S3BucketException(StringAll.PATTERN_MATCH_OBJECT_RETREIVE_FAILED);
+        }
+        List<PatternMatchResponseDto> patternMatchResponseDtos=transform.convertPatternEntityToDto(s3BucketObjects);
+        return PatternMatchResponse.builder()
+                .data(patternMatchResponseDtos)
+                .status(Status.SUCCESS)
+                .message(StringAll.PATTERN_MATCH_RETREIVED)
                 .build();
     }
 }
