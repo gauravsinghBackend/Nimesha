@@ -54,6 +54,11 @@
 			<artifactId>aws-java-sdk-ec2</artifactId>
 			<version>1.11.389</version>
 		</dependency>
+		<dependency>
+			<groupId>org.modelmapper</groupId>
+			<artifactId>modelmapper</artifactId>
+			<version>3.1.1</version>
+		</dependency>
 
 
 

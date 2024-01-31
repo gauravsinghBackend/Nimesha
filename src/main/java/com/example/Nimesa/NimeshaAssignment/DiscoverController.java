@@ -5,6 +5,7 @@ import com.amazonaws.services.s3.AmazonS3;
 import com.example.Nimesa.NimeshaAssignment.Response.DiscoveryResultResponse;
 import com.example.Nimesa.NimeshaAssignment.Response.InstanceBucketResponse;
 import com.example.Nimesa.NimeshaAssignment.Response.JobStatusResponse;
+import com.example.Nimesa.NimeshaAssignment.Response.S3BucketResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -46,8 +47,12 @@ public class DiscoverController {
             return ResponseEntity.status(HttpStatus.OK).body(jobStatusResponse);
     }
     @GetMapping("/getDiscoveryResult")
-    private ResponseEntity<DiscoveryResultResponse> getDiscoveryResult(@RequestParam("services") String service)
+    private ResponseEntity<DiscoveryResultResponse> getDiscoveryResult(@RequestParam("service") String service)
     {
         return ResponseEntity.status(HttpStatus.OK).body(discoverServices.getDiscovertResult(service));
+    }
+    @GetMapping("/getS3Bucket")
+    private ResponseEntity<S3BucketResponse> getS3BucketObject(@RequestParam("bucketName") String bucketName){
+        return ResponseEntity.status(HttpStatus.OK).body(discoverServices.getS3BucketObject(bucketName));
     }
 }

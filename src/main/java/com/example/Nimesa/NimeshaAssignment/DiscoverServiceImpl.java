@@ -4,18 +4,22 @@ import com.amazonaws.services.ec2.AmazonEC2;
 import com.amazonaws.services.ec2.model.*;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.Bucket;
+import com.amazonaws.services.s3.model.ObjectListing;
+import com.amazonaws.services.s3.model.S3ObjectSummary;
+import com.example.Nimesa.NimeshaAssignment.Dto.EC2InstancesDto;
 import com.example.Nimesa.NimeshaAssignment.Dto.InstanceBucketDto;
-import com.example.Nimesa.NimeshaAssignment.Model.EC2Instance;
-import com.example.Nimesa.NimeshaAssignment.Model.Job;
-import com.example.Nimesa.NimeshaAssignment.Model.JobStatus;
-import com.example.Nimesa.NimeshaAssignment.Model.S3Bucket;
+import com.example.Nimesa.NimeshaAssignment.Dto.S3BucketResponseDto;
+import com.example.Nimesa.NimeshaAssignment.Model.*;
 import com.example.Nimesa.NimeshaAssignment.Dto.JobResponseDto;
 import com.example.Nimesa.NimeshaAssignment.Response.DiscoveryResultResponse;
 import com.example.Nimesa.NimeshaAssignment.Response.InstanceBucketResponse;
 import com.example.Nimesa.NimeshaAssignment.Response.JobStatusResponse;
+import com.example.Nimesa.NimeshaAssignment.Response.S3BucketResponse;
 import com.example.Nimesa.Util.Status;
 import com.example.Nimesa.Util.StringAll;
+import com.example.Nimesa.Util.Transform;
 import lombok.extern.slf4j.Slf4j;
+import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -41,6 +45,12 @@ public class DiscoverServiceImpl implements DiscoverServices{
     private Ec2Repository ec2Repository;
     @Autowired
     private S3Repository s3Repository;
+    @Autowired
+    private ModelMapper modelMapper;
+    @Autowired
+    private Transform transform;
+    @Autowired
+    private S3ObjectRespository s3ObjectRespository;
     @Override
     public InstanceBucketResponse discoverInstanceAndS3(List<String> services) {
         String jobId = UUID.randomUUID().toString();
@@ -151,14 +161,61 @@ public class DiscoverServiceImpl implements DiscoverServices{
 
     @Override
     public DiscoveryResultResponse getDiscovertResult(String service) {
+
         if (service.equals("EC2"))
         {
             List<EC2Instance> ec2Instances = ec2Repository.findAll();
+            List<EC2InstancesDto> ec2InstancesDtos= transform.convertEntityToDto(ec2Instances);
+            return DiscoveryResultResponse.builder()
+                    .status(Status.SUCCESS)
+                    .message(StringAll.INSTANCE_RETIEVED)
+                    .data(ec2InstancesDtos)
+                    .build();
         }
         else if (service.equals("S3"))
         {
             List<S3Bucket> s3Buckets=s3Repository.findAll();
+            return DiscoveryResultResponse.builder()
+                    .status(Status.SUCCESS)
+                    .message(StringAll.BUCKET_RETREIVED)
+                    .data(s3Buckets)
+                    .build();
         }
-        return null;
+        else{
+            return null;
+        }
+
+    }
+
+    @Override
+    public S3BucketResponse getS3BucketObject(String bucketName) {
+        String jobId = UUID.randomUUID().toString();
+
+        CompletableFuture.runAsync(() -> {
+            try {
+                // Retrieve the list of file names in the S3 bucket
+                ObjectListing objectListing = amazonS3.listObjects(bucketName);
+                List<S3ObjectSummary> objectSummaries = objectListing.getObjectSummaries();
+
+                // Extract file names and persist them in the database
+                for (S3ObjectSummary objectSummary : objectSummaries) {
+                    String fileName = objectSummary.getKey();
+                    S3BucketObject s3File = new S3BucketObject();
+                    s3File.setBucketName(bucketName);
+                    s3File.setFilenName(fileName);
+                    s3ObjectRespository.save(s3File);
+                }
+            } catch (Exception e) {
+                // Handle exceptions
+                e.printStackTrace();
+            }
+        });
+        S3BucketResponseDto s3BucketResponseDto=new S3BucketResponseDto();
+        s3BucketResponseDto.setJobId(jobId);
+        return S3BucketResponse.builder()
+                .data(s3BucketResponseDto)
+                .message(StringAll.BUCKET_OBJECT_SAVED)
+                .status(Status.SUCCESS)
+                .build();
     }
 }
